@@ -4,26 +4,30 @@ import { createServerClient } from '@/lib/supabase';
 import { randomBytes } from 'crypto';
 
 export async function POST(req: NextRequest) {
-  const { creator_id, creator_name } = await req.json();
-  if (!creator_id || !creator_name) {
-    return NextResponse.json({ error: 'creator_id and creator_name required' }, { status: 400 });
+  try {
+    const { creator_id, creator_name } = await req.json();
+    if (!creator_id || !creator_name) {
+      return NextResponse.json({ error: 'creator_id and creator_name required' }, { status: 400 });
+    }
+
+    const supabase = createServerClient();
+    const invite_token = randomBytes(16).toString('hex');
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert({
+        invite_token,
+        participant_ids: [creator_id],
+        participant_names: [creator_name],
+      })
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? 'Internal server error' }, { status: 500 });
   }
-
-  const supabase = createServerClient();
-  const invite_token = randomBytes(16).toString('hex');
-
-  const { data, error } = await supabase
-    .from('conversations')
-    .insert({
-      invite_token,
-      participant_ids: [creator_id],
-      participant_names: [creator_name],
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
 }
 
 export async function GET(req: NextRequest) {
