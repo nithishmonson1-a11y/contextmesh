@@ -9,6 +9,7 @@ export default function LandingPage() {
   const { id, name, saveName, isLoaded } = useIdentity();
   const [creating, setCreating] = useState(false);
   const [showNameEntry, setShowNameEntry] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleStart = () => {
     if (!name) {
@@ -20,6 +21,7 @@ export default function LandingPage() {
 
   const createConversation = async (userName: string) => {
     setCreating(true);
+    setError(null);
     try {
       const res = await fetch('/api/conversations', {
         method: 'POST',
@@ -27,7 +29,13 @@ export default function LandingPage() {
         body: JSON.stringify({ creator_id: id, creator_name: userName }),
       });
       const conv = await res.json();
-      if (conv.id) router.push(`/chat/${conv.id}`);
+      if (conv.id) {
+        router.push(`/chat/${conv.id}`);
+      } else {
+        setError(conv.error ?? 'Something went wrong. Check Railway env vars and Supabase schema.');
+      }
+    } catch (e) {
+      setError('Network error — is the server running?');
     } finally {
       setCreating(false);
     }
@@ -64,6 +72,10 @@ export default function LandingPage() {
           >
             {creating ? 'Starting…' : 'Start a conversation'}
           </button>
+
+          {error && (
+            <p className="text-xs font-medium" style={{ color: '#C4714A' }}>{error}</p>
+          )}
 
           <p className="text-xs" style={{ color: '#A8A29E' }}>
             Share the link. Your contact joins in seconds. No install required.
