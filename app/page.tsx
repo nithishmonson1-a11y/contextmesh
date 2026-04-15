@@ -28,14 +28,21 @@ export default function LandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ creator_id: id, creator_name: userName }),
       });
-      const conv = await res.json();
+      const text = await res.text();
+      let conv: any;
+      try {
+        conv = JSON.parse(text);
+      } catch {
+        setError(`Server error (${res.status}): ${text.slice(0, 200)}`);
+        return;
+      }
       if (conv.id) {
         router.push(`/chat/${conv.id}`);
       } else {
-        setError(conv.error ?? 'Something went wrong. Check Railway env vars and Supabase schema.');
+        setError(conv.error ?? 'Unknown error');
       }
-    } catch (e) {
-      setError('Network error — is the server running?');
+    } catch (e: any) {
+      setError(`Network error: ${e?.message}`);
     } finally {
       setCreating(false);
     }
